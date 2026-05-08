@@ -1,33 +1,97 @@
-import React from 'react'
-import { View, Text } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TaskStats({ stats }) {
   return (
-    <View className="px-6 py-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-      <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-lg font-semibold text-gray-900">Task Summary</Text>
-        <View className="flex-row items-center bg-white/50 px-3 py-1 rounded-full">
+    <View style={styles.container}>
+
+      <View style={styles.header}>
+        <Text style={styles.title}>Task Summary</Text>
+
+        <View style={styles.badge}>
           <Ionicons name="analytics-outline" size={16} color="#6366f1" />
-          <Text className="ml-1 text-sm font-medium text-indigo-700">
-            {stats.total} total
-          </Text>
+          <Text style={styles.badgeText}>{stats.total} total</Text>
         </View>
       </View>
 
-      <View className="flex-row justify-between">
-        <View className="items-center flex-1">
-          <Text className="text-2xl font-bold text-gray-900">{stats.pending}</Text>
-          <Text className="text-xs text-gray-500 uppercase tracking-wider mt-1">Pending</Text>
+     
+      <View style={styles.row}>
+        <View style={styles.box}>
+          <Text style={styles.number}>{stats.pending}</Text>
+          <Text style={styles.label}>Pending</Text>
         </View>
-        
-        <View className="w-12 h-1 bg-gray-200 rounded-full mx-3" />
-        
-        <View className="items-center flex-1">
-          <Text className="text-2xl font-bold text-green-600">{stats.completed}</Text>
-          <Text className="text-xs text-gray-500 uppercase tracking-wider mt-1">Completed</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.box}>
+          <Text style={[styles.number, { color: "#16a34a" }]}>
+            {stats.completed}
+          </Text>
+          <Text style={styles.label}>Completed</Text>
         </View>
       </View>
     </View>
-  )
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: "#eef2ff",
+    borderRadius: 12,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.6)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  badgeText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#4f46e5",
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  box: {
+    flex: 1,
+    alignItems: "center",
+  },
+  number: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111827",
+  },
+  label: {
+    fontSize: 10,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    marginTop: 4,
+  },
+  divider: {
+    width: 48,
+    height: 4,
+    backgroundColor: "#e5e7eb",
+    borderRadius: 999,
+    marginHorizontal: 12,
+    alignSelf: "center",
+  },
+});

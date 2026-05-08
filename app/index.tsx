@@ -1,202 +1,202 @@
-import { useState, useCallback } from 'react'
-import { Text, View } from "react-native";
-import { Ionicons } from '@expo/vector-icons'
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Checkbox } from "expo-checkbox";
+import { useEffect, useState, useRef } from "react";
+import EmptyState from "../src/components/EmptyState";
+import TaskItem from "../src/components/TaskItem";
+import TaskStats from "../src/components/TaskStats";
 import {
-  ScrollView,
-  Alert,
-  StatusBar,
+  FlatList,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-} from 'react-native'
-
-import { SafeAreaView } from 'react-native-safe-area-context'
-
-type Task = {
-  id: string
-  text: string
-  completed: boolean
-}
-
-type Stats = {
-  total: number
-  completed: number
-  pending: number
-}
-
-const TaskItem = ({
-  task,
-  onToggle,
-  onDelete,
-}: {
-  task: Task
-  onToggle: () => void
-  onDelete: () => void
-}) => (
-  <View className="px-6 py-4 border-b border-gray-200 bg-white">
-    <View className="flex-row items-center justify-between">
-      <TouchableOpacity
-        onPress={onToggle}
-        className="flex-row items-center"
-        activeOpacity={0.7}
-      >
-        <Ionicons
-          name={task.completed ? 'checkmark-circle' : 'ellipse-outline'}
-          size={24}
-          color={task.completed ? '#10b981' : '#9ca3af'}
-        />
-        <View className="ml-3">
-          <Text className={`text-base ${task.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-            {task.text}
-          </Text>
-          <Text className="text-xs text-gray-500">
-            {task.completed ? 'Completed' : 'Pending'}
-          </Text>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDelete} activeOpacity={0.7}>
-        <Ionicons name="trash-outline" size={20} color="#ef4444" />
-      </TouchableOpacity>
-    </View>
-  </View>
-)
-
-const TaskStats = ({ stats }: { stats: Stats }) => (
-  <View className="px-6 py-4 bg-white border-b border-gray-200">
-    <View className="flex-row justify-between items-center">
-      <View>
-        <Text className="text-sm text-gray-500">Total Tasks</Text>
-        <Text className="text-xl font-semibold text-gray-900">{stats.total}</Text>
-      </View>
-      <View className="items-end">
-        <Text className="text-sm text-green-600">Completed: {stats.completed}</Text>
-        <Text className="text-sm text-yellow-600">Pending: {stats.pending}</Text>
-      </View>
-    </View>
-  </View>
-)
-
-const EmptyState = () => (
-  <View className="flex-1 justify-center items-center px-6">
-    <Text className="text-lg font-semibold text-gray-900 mb-2">No tasks yet</Text>
-    <Text className="text-sm text-gray-500 text-center">
-      Add a task to get started and keep your day on track.
-    </Text>
-  </View>
-)
+  View,
+  KeyboardAvoidingView,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+type Todo = {
+  id: number;
+  title: string;
+  completed: boolean;
+};
 
 export default function App() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [inputText, setInputText] = useState('')
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [newTodo, setNewTodo] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
+  const inputRef = useRef<TextInput | null>(null);
 
-  const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2)
+  const totalTasks = todos.length;
+  const completedTasks = todos.filter((t) => t.completed).length;
+  const pendingTasks = totalTasks - completedTasks;
 
-  const addTask = () => {
-    if (inputText.trim() === '') {
-      Alert.alert('Invalid Task', 'Please enter a task description')
-      return
+  
+  const addTodo = () => {
+    if (newTodo.trim() === "") {
+      alert("Please Enter a Task!");
+      return;
     }
 
-    const newTask = {
-      id: generateId(),
-      text: inputText.trim(),
+    const newItem: Todo = {
+      id: Date.now(),
+      title: newTodo,
       completed: false,
+    };
+
+    setTodos([...todos, newItem]);
+    setNewTodo("");
+  };
+
+  const deleteTodo = (id: number) => {
+    setTodos(todos.filter((todo) => todo.id !== id));
+    alert("Task Deleted!");
+  };
+
+
+  const toggleTodo = (id: number) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id
+          ? { ...todo, completed: !todo.completed }
+          : todo
+      )
+    );
+  };
+
+
+  useEffect(() => {
+    if (isLoaded) {
+      AsyncStorage.setItem("TODOS", JSON.stringify(todos)).catch(console.error);
     }
+  }, [todos, isLoaded]);
 
-    setTasks(prev => [newTask, ...prev])
-    setInputText('')
-  }
-
-  const toggleTask = useCallback((id: string) => {
-    setTasks(prev => prev.map(task =>
-      task.id === id ? { ...task, completed: !task.completed } : task
-    ))
-  }, [])
-
-  const deleteTask = useCallback((id: string) => {
-    Alert.alert(
-      'Delete Task',
-      'Are you sure you want to delete this task?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setTasks(prev => prev.filter(task => task.id !== id))
-          },
-        },
-      ]
-    )
-  }, [])
-
-  const markAllComplete = useCallback(() => {
-    if (tasks.length === 0) return
-
-    const hasPending = tasks.some(task => !task.completed)
-    if (!hasPending) {
-      Alert.alert('All Done!', 'All tasks are already completed 🎉')
-      return
-    }
-
-    setTasks(prev => prev.map(task => ({ ...task, completed: true })))
-  }, [tasks.length])
-
-  const deleteCompleted = useCallback(() => {
-    const completedCount = tasks.filter(task => task.completed).length
-    if (completedCount === 0) {
-      Alert.alert('Nothing to Delete', 'No completed tasks found')
-      return
-    }
-
-    Alert.alert(
-      'Clear Completed',
-      `Delete ${completedCount} completed task(s)?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setTasks(prev => prev.filter(task => !task.completed))
-          },
-        },
-      ]
-    )
-  }, [tasks])
-
-  const stats = {
-    total: tasks.length,
-    completed: tasks.filter(task => task.completed).length,
-    pending: tasks.filter(task => !task.completed).length,
-  }
+  useEffect(() => {
+    AsyncStorage.getItem("TODOS")
+      .then((storedTodos) => {
+        if (storedTodos !== null) {
+          setTodos(JSON.parse(storedTodos));
+        }
+      })
+      .catch(console.error)
+      .finally(() => setIsLoaded(true));
+  }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
+    <SafeAreaView style={styles.container}>
 
-      <View className="px-6 pt-4 pb-6 bg-white border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900 mb-1">My Tasks</Text>
-        <Text className="text-sm text-gray-500">Stay organized and productive</Text>
+      <View style={styles.header}>
+        <Ionicons name="create" size={34} color="purple" />
+        <Text style={styles.headerTitle}>My Tasks</Text>
       </View>
 
-      <TaskStats stats={stats} />
 
-      <View className="flex-1">
-        {tasks.length === 0 ? (
-          <EmptyState />
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsText}>Total: {totalTasks}</Text>
+        <Text style={styles.statsText}>Completed: {completedTasks}</Text>
+        <Text style={styles.statsText}>Pending: {pendingTasks}</Text>
+      </View>
+
+      <View style={{ flex: 1 }}>
+        {todos.length === 0 ? (
+          <EmptyState onAddPress={() => inputRef.current?.focus()} />
         ) : (
-          <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-            {tasks.map((task) => (
-              <TaskItem
-                key={task.id}
-                task={task}
-                onToggle={() => toggleTask(task.id)}
-                onDelete={() => deleteTask(task.id)}
-              />
-            ))}
-          </ScrollView>
+          <FlatList
+            data={todos}
+            keyExtractor={(item) => item.id.toString()}
+ renderItem={({ item }) => (
+  <TaskItem
+    item={item}
+    onToggle={toggleTodo}
+    onDelete={deleteTodo}
+  />
+)}
+          />
         )}
       </View>
+
+    
+      <KeyboardAvoidingView behavior="padding">
+        <TextInput
+          ref={inputRef}
+          placeholder="Add Task"
+          style={styles.textInput}
+          value={newTodo}
+          onChangeText={setNewTodo}
+        />
+        <TouchableOpacity style={styles.addButton} onPress={addTodo}>
+          <Ionicons name="bag-add" size={34} color="pink" />
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </SafeAreaView>
-  )
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 25,
+    backgroundColor: "rgb(193, 176, 231)",
+  },
+  header: {
+    marginBottom: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "purple",
+  },
+  statsContainer: {
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 15,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  statsText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#870b85",
+  },
+  todoContainer: {
+    backgroundColor: "white",
+    padding: 16,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  todoInfoContainer: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  todoText: {
+    fontSize: 16,
+    color: "#333",
+    flex: 1,
+  },
+  completedText: {
+    textDecorationLine: "line-through",
+
+  },
+  deleteButton: {
+    marginLeft: "auto",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    padding: 10,
+    backgroundColor: "white",
+    marginBottom: 10,
+  },
+  addButton: {
+    backgroundColor: "purple",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+});
